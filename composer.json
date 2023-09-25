@@ -1,0 +1,42 @@
+{
+  "name": "celysium/websocket",
+  "description": "The package websocket in laravel",
+  "keywords": [
+    "Laravel",
+    "WebSocket"
+  ],
+  "license": "MIT",
+  "type": "library",
+  "autoload": {
+    "psr-4": {
+      "Celysium\\WebSocket\\": "src/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Celysium\\WebSocket\\WebSocketServiceProvider"
+      ]
+    }
+  },
+  "authors": [
+    {
+      "name": "Nasser Hekmati",
+      "email": "hekmati.nasser@gmail.com"
+    },
+    {
+      "name": "Reyhaneh Alihosseini",
+      "email": "reyhaneh.alihosseini@gmail.com"
+    }
+  ],
+  "require": {
+    "php": "^8.1",
+    "laravel/framework": "^9.0|^10.0",
+    "openswoole/core": "22.1.2"
+  },
+  "require-dev": {
+    "openswoole/ide-helper": "~22.0.1"
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}
