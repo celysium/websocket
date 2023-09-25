@@ -22,8 +22,8 @@ class WebSocketServiceProvider extends ServiceProvider
             __DIR__ . '/../config/websocket.php', 'websocket'
         );
 
-        $this->app->bind('websocket', function($app) {
-            return new WebSocket();
+        $this->app->bind('websocket-channel', function($app) {
+            return new Channel();
         });
     }
 }
