@@ -1,20 +1,7 @@
 <?php
 
-namespace Celysium\Permission;
+namespace Celysium\WebSocket;
 
-use Celysium\Permission\Middleware\CheckPermission;
-use Celysium\Permission\Middleware\CheckRole;
-use Celysium\Permission\Models\Permission;
-use Celysium\Permission\Models\Role;
-use Celysium\Permission\Observers\PermissionObserver;
-use Celysium\Permission\Observers\RoleObserver;
-use Celysium\Permission\Repositories\Permission\PermissionRepository;
-use Celysium\Permission\Repositories\Permission\PermissionRepositoryInterface;
-use Celysium\Permission\Repositories\Role\RoleRepository;
-use Celysium\Permission\Repositories\Role\RoleRepositoryInterface;
-use Celysium\Permission\Traits\Permissions;
-use Illuminate\Routing\Router;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class WebSocketServiceProvider extends ServiceProvider
@@ -34,5 +21,9 @@ class WebSocketServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(
             __DIR__ . '/../config/websocket.php', 'websocket'
         );
+
+        $this->app->bind('websocket', function($app) {
+            return new WebSocket();
+        });
     }
 }
