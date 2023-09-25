@@ -25,5 +25,9 @@ class WebSocketServiceProvider extends ServiceProvider
         $this->app->bind('websocket', function($app) {
             return new WebSocket();
         });
+
+        $this->app->bind('server', function($app) {
+            return new Server();
+        });
     }
 }
