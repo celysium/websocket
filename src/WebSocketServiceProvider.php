@@ -21,9 +21,5 @@ class WebSocketServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(
             __DIR__ . '/../config/websocket.php', 'websocket'
         );
-
-        $this->app->bind('websocket-channel', function($app) {
-            return new Channel();
-        });
     }
 }

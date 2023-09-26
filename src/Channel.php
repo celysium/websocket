@@ -5,18 +5,24 @@ namespace Celysium\WebSocket;
 use OpenSwoole\Table;
 class Channel
 {
-    private Table $subscribers;
-    public function __construct()
+    private array $channels;
+    public function __construct(private readonly string $name = 'default')
     {
-        $this->subscribers = new Table(1024);
-        $this->subscribers->column('id', Table::TYPE_INT, 4);
-        $this->subscribers->column('user_id', Table::TYPE_INT, 4);
-        $this->subscribers->create();
+        $subscribers = new Table(1024);
+        $subscribers->column('id', Table::TYPE_INT, 4);
+        $subscribers->column('user_id', Table::TYPE_INT, 4);
+        $subscribers->create();
+        $this->channels[$name] = $subscribers;
     }
 
-    public function subscribers(): Table
+    public function subscribers(string $name = null): Table
     {
-        return $this->subscribers;
+        return $this->channels[$name ?? $this->name];
+    }
+
+    public function channels(): array
+    {
+        return $this->channels;
     }
 
 }
