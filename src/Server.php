@@ -18,7 +18,7 @@ class Server extends WebsocketServer implements ServerInterface
     public function onStart(): void
     {
         $this->on("Start", function () {
-            echo "Swoole WebSocket Server is started at " . $this->host . ":" . $this->port . "\n";
+            echo "Swoole WebSocket Server is started at " . $this->host . ":" . $this->port . PHP_EOL;
         });
     }
 
@@ -27,10 +27,10 @@ class Server extends WebsocketServer implements ServerInterface
         $this->on("Open", function () use ($request) {
             $fd = $request->fd;
             $this->channel->subscribers()->set($request->fd, [
-                'fd' => $fd,
+                'fd'      => $fd,
                 'user_id' => $request->get['user_id'] ?? null,
             ]);
-            echo "Connection <{$fd}> opened. Total connections: " . $this->channel->subscribers()->count() . "\n";
+            echo "Connection <{$fd}> opened. Total connections: " . $this->channel->subscribers()->count() . PHP_EOL;
         });
     }
 
@@ -39,9 +39,7 @@ class Server extends WebsocketServer implements ServerInterface
         $this->on("Message", function () use ($frame) {
             $user_id = $this->channel->subscribers()->get(strval($frame->fd), "user_id");
 
-            echo "Received from " . $frame->fd . ", user_id : $user_id" . PHP_EOL;
-
-            $this->broadcast($frame->data);
+            echo "Received message from " . $frame->fd . ($user_id ? (" for user_id : $user_id") : '') . PHP_EOL;
         });
     }
 
@@ -49,7 +47,8 @@ class Server extends WebsocketServer implements ServerInterface
     {
         $this->on("Close", function () use ($fd) {
             $this->channel->subscribers()->del($fd);
-            echo "Connection close: {$fd}, total connections: " . $this->channel->subscribers()->count() . "\n";
+
+            echo "Connection close: {$fd}, total connections: " . $this->channel->subscribers()->count() . PHP_EOL;
         });
     }
 
@@ -57,7 +56,7 @@ class Server extends WebsocketServer implements ServerInterface
     {
         $this->on("Disconnect", function () use ($fd) {
             $this->channel->subscribers()->del($fd);
-            echo "Disconnect: {$fd}, total connections: " . $this->channel->subscribers()->count() . "\n";
+            echo "Disconnect: {$fd}, total connections: " . $this->channel->subscribers()->count() . PHP_EOL;
         });
     }
 
@@ -65,6 +64,24 @@ class Server extends WebsocketServer implements ServerInterface
     {
         foreach ($this->channel->subscribers() as $key => $value) {
             $this->push($key, $data);
+        }
+    }
+
+    public function sendOnly(array $users, $data): void
+    {
+        foreach ($this->channel->subscribers() as $key => $value) {
+            if (in_array($value['user_id'], $users)) {
+                $this->push($key, $data);
+            }
+        }
+    }
+
+    public function sendExcept(array $users, $data): void
+    {
+        foreach ($this->channel->subscribers() as $key => $value) {
+            if (!in_array($value['user_id'], $users)) {
+                $this->push($key, $data);
+            }
         }
     }
 }

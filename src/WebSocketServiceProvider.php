@@ -2,6 +2,7 @@
 
 namespace Celysium\WebSocket;
 
+use Celysium\WebSocket\Commands\ServeWebSocket;
 use Illuminate\Support\ServiceProvider;
 
 class WebSocketServiceProvider extends ServiceProvider
@@ -22,12 +23,6 @@ class WebSocketServiceProvider extends ServiceProvider
             __DIR__ . '/../config/websocket.php', 'websocket'
         );
 
-        $this->app->bind('websocket-channel', function($app) {
-            return new Channel();
-        });
-
-        $this->app->bind('server', function($app) {
-            return new Server();
-        });
+        $this->commands(ServeWebSocket::class);
     }
 }

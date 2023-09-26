@@ -2,7 +2,7 @@
 
 namespace Celysium\WebSocket\Commands;
 
-use Celysium\WebSocket\Facades\Channel;
+use Celysium\WebSocket\Channel;
 use Celysium\WebSocket\Server;
 use Illuminate\Console\Command;
 
@@ -13,7 +13,7 @@ class ServeWebSocket extends Command
      *
      * @var string
      */
-    protected $signature = 'serve:websocket';
+    protected $signature = 'serve:websocket {--host=} {--port=} {--channel=}';
 
     /**
      * The console command description.
@@ -27,12 +27,20 @@ class ServeWebSocket extends Command
      */
     public function handle()
     {
-        $server = new Server($this->option('host'), $this->option('port'));
 
-        $channel = Channel::subscribers();
+        $host = $this->option('host') ?? config('websocket.server.host');
+        $port = $this->option('port') ?? config('websocket.server.port');
+        $channelName = $this->option('channel');
 
-        $server->setChannel($channel);
+        $server = new Server($host, $port);
 
 
+        $channel = new Channel($channelName);
+        $subscribers = $channel->subscribers();
+
+
+        $server->setChannel($subscribers);
+
+        $server->start();
     }
 }
