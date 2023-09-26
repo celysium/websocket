@@ -22,45 +22,45 @@ class Server extends WebsocketServer implements ServerInterface
         });
     }
 
-    public function onOpen(Request $request): void
+    public function onOpen(): void
     {
-        $this->on("Open", function () use ($request) {
+        $this->on("Open", function (Server $server, Request $request) {
             $fd = $request->fd;
-            $this->channel->subscribers()->set($request->fd, [
+            $server->channel->subscribers()->set($request->fd, [
                 'fd'      => $fd,
                 'user_id' => $request->get['user_id'] ?? null,
             ]);
-            echo "Connection <{$fd}> opened. Total connections: " . $this->channel->subscribers()->count() . PHP_EOL;
+            echo "Connection <{$fd}> opened. Total connections: " . $server->channel->subscribers()->count() . PHP_EOL;
         });
     }
 
-    public function onMessage(Frame $frame): void
+    public function onMessage(): void
     {
-        $this->on("Message", function () use ($frame) {
-            $user_id = $this->channel->subscribers()->get(strval($frame->fd), "user_id");
+        $this->on("Message", function (Server $server, Frame $frame) {
+            $user_id = $server->channel->subscribers()->get(strval($frame->fd), "user_id");
 
             echo "Received message from " . $frame->fd . ($user_id ? (" for user_id : $user_id") : '') . PHP_EOL;
         });
     }
 
-    public function onClose(int $fd): void
+    public function onClose(): void
     {
-        $this->on("Close", function () use ($fd) {
-            $this->channel->subscribers()->del($fd);
+        $this->on("Close", function (Server $server, int $fd) {
+            $server->channel->subscribers()->del($fd);
 
-            echo "Connection close: {$fd}, total connections: " . $this->channel->subscribers()->count() . PHP_EOL;
+            echo "Connection close: {$fd}, total connections: " . $server->channel->subscribers()->count() . PHP_EOL;
         });
     }
 
-    public function onDisconnect(int $fd): void
+    public function onDisconnect(): void
     {
-        $this->on("Disconnect", function () use ($fd) {
-            $this->channel->subscribers()->del($fd);
-            echo "Disconnect: {$fd}, total connections: " . $this->channel->subscribers()->count() . PHP_EOL;
+        $this->on("Disconnect", function (Server $server, int $fd) {
+            $server->channel->subscribers()->del($fd);
+            echo "Disconnect: {$fd}, total connections: " . $server->channel->subscribers()->count() . PHP_EOL;
         });
     }
 
-    public function broadcast(string $data)
+    public function broadcast(string $data): void
     {
         foreach ($this->channel->subscribers() as $key => $value) {
             $this->push($key, $data);
@@ -84,4 +84,5 @@ class Server extends WebsocketServer implements ServerInterface
             }
         }
     }
+
 }

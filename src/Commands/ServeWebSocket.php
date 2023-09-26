@@ -34,13 +34,15 @@ class ServeWebSocket extends Command
 
         $server = new Server($host, $port);
 
-
         $channel = new Channel($channelName);
-        $subscribers = $channel->subscribers();
 
+        $server->setChannel($channel);
 
-        $server->setChannel($subscribers);
-
+        $server->onStart();
+        $server->onOpen();
+        $server->onMessage();
+        $server->onClose();
+        $server->onDisconnect();
         $server->start();
     }
 }
