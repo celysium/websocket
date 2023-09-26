@@ -13,7 +13,7 @@ class ServeWebSocket extends Command
      *
      * @var string
      */
-    protected $signature = 'serve:websocket {--host=} {--port=} {--channel=}';
+    protected $signature = 'serve:websocket {--host=} {--port=} {--channel=default}';
 
     /**
      * The console command description.
@@ -32,11 +32,11 @@ class ServeWebSocket extends Command
         $port = $this->option('port') ?? config('websocket.server.port');
         $channelName = $this->option('channel');
 
-        $server = new Server($host, $port);
+        $server = Server::instance($host, $port);
 
-        $channel = new Channel($channelName);
+        $channel = new Channel();
 
-        $server->setChannel($channel);
+        $server->setChannel($channel, $channelName);
 
         $server->onStart();
         $server->onOpen();
