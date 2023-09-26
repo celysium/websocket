@@ -2,6 +2,7 @@
 
 namespace Celysium\WebSocket;
 
+use Celysium\WebSocket\Commands\ServeWebSocket;
 use Illuminate\Support\ServiceProvider;
 
 class WebSocketServiceProvider extends ServiceProvider
@@ -21,5 +22,7 @@ class WebSocketServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(
             __DIR__ . '/../config/websocket.php', 'websocket'
         );
+
+        $this->commands(ServeWebSocket::class);
     }
 }
