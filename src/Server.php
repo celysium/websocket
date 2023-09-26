@@ -5,7 +5,6 @@ namespace Celysium\WebSocket;
 use Exception;
 use OpenSwoole\Constant;
 use OpenSwoole\Http\Request;
-use OpenSwoole\Table;
 use OpenSwoole\WebSocket\Frame;
 use OpenSwoole\WebSocket\Server as WebsocketServer;
 
@@ -13,7 +12,7 @@ class Server extends WebsocketServer implements ServerInterface
 {
     private array $channels;
 
-    private static self $server;
+    private static $server;
 
     private function __construct(string $host = null, int $port = 0, int $mode = \OpenSwoole\Server::SIMPLE_MODE, int $sockType = Constant::SOCK_TCP)
     {
@@ -35,10 +34,10 @@ class Server extends WebsocketServer implements ServerInterface
 
     /**
      * @param string $name
-     * @return Table
+     * @return Channel
      * @throws Exception
      */
-    public function getChannel(string $name): Table
+    public function getChannel(string $name): Channel
     {
         if(isset($this->channels[$name])) {
             return $this->channels[$name];
@@ -58,7 +57,7 @@ class Server extends WebsocketServer implements ServerInterface
         $this->on("Open", function (Server $server, Request $request) {
             $fd = $request->fd;
             $channel = $request->get['channel'] ?? null;
-            $server->getChannel($channel)->set($request->fd, [
+            $server->getChannel($channel)->subscribers()->set($request->fd, [
                 'fd'      => $fd,
                 'user_id' => $request->get['user_id'] ?? null,
             ]);
@@ -68,8 +67,9 @@ class Server extends WebsocketServer implements ServerInterface
 
     public function onMessage(): void
     {
-        $this->on("Message", function (Server $server, Request $request, Frame $frame) {
-            $channel = $request->get['channel'] ?? null;
+        $this->on("Message", function (Server $server, Frame $frame) {
+            print_r($frame);
+            $channel =  null;
             $user_id = $server->getChannel($channel)->subscribers()->get(strval($frame->fd), "user_id");
 
             echo "Received message from " . $frame->fd . ($user_id ? (" for user_id : $user_id") : '') . PHP_EOL;
