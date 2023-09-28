@@ -13,7 +13,7 @@ class ServeWebSocket extends Command
      *
      * @var string
      */
-    protected $signature = 'serve:websocket {--host=} {--port=}';
+    protected $signature = 'websocket:serve {--host=} {--port=}';
 
     /**
      * The console command description.
