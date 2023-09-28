@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title> WebSocket with PHP and Open Swoole </title>
+    <script>
+        let socket;
+        let user_id = 0;
+        append = function (text) {
+            document.getElementById("websocket_events").insertAdjacentHTML('beforeend',
+                "<li>" + text + ";</li>"
+            );
+        }
+        window.onload = function () {
+            socket = new WebSocket(`wss://127.0.0.1:9501?channel=admin&user_id=${user_id}`);
+            socket.onmessage = function (event) {
+                append(event.data)
+            }
+            socket.onopen = function () {
+                append("Connected to WebSocket!");
+            }
+            socket.onclose = function () {
+                append("Connection closed");
+            }
+            socket.onerror = function () {
+                append("Error happens");
+            }
+        }
+
+        function sendMessage(event) {
+            console.log(event)
+            let message = document.getElementById("message").value;
+            let data = JSON.stringify({ channel: "admin", 'user_id': user_id, message: message });
+            socket.send(data);
+        }
+
+    </script>
+</head>
+
+<body>
+    <div>
+        <label for="message">Message: </label>
+        <input value="Hello!" type="text" id="message" /><br><br>
+        <input type="button" value="Submit" onclick="sendMessage(event)" /><br>
+        <ul id="websocket_events">
+        </ul>
+    </div>
+</body>
+
+</html>
