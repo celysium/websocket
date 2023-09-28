@@ -17,7 +17,7 @@ class SendExceptEvent
     /**
      * Create a new event instance.
      */
-    public function __construct(public string $channel, public array $users, public string $data)
+    public function __construct(public array $users, public string $data)
     {
         //
     }

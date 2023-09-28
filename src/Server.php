@@ -2,6 +2,7 @@
 
 namespace Celysium\WebSocket;
 
+use Celysium\WebSocket\Events\IncomeMessageEvent;
 use Exception;
 use OpenSwoole\Constant;
 use OpenSwoole\Http\Request;
@@ -10,45 +11,42 @@ use OpenSwoole\WebSocket\Server as WebsocketServer;
 
 class Server extends WebsocketServer implements ServerInterface
 {
-    private array $channels;
+    private Channel $channel;
 
     private static $server;
 
-    private function __construct(string $host = null, int $port = 0, int $mode = \OpenSwoole\Server::SIMPLE_MODE, int $sockType = Constant::SOCK_TCP)
+    private function __construct(string $host, int $port = 0, int $mode = \OpenSwoole\Server::SIMPLE_MODE, int $sockType = Constant::SOCK_TCP)
     {
         parent::__construct($host, $port, $mode, $sockType);
     }
+
     public static function instance(string $host = null, int $port = 0, int $mode = \OpenSwoole\Server::SIMPLE_MODE, int $sockType = Constant::SOCK_TCP): Server
     {
         if (!self::$server) {
-            self::$server = new self($host, $port, $mode, $sockType);
+            self::$server = new self($host ?? config('websocket.server.host'), $port, $mode, $sockType);
         }
 
         return self::$server;
     }
 
-    public function setChannel(Channel $channel, string $name)
+    public function setChannel(Channel $channel)
     {
-        $this->channels[$name] = $channel;
+        $this->channel = $channel;
     }
 
     /**
-     * @param string $name
      * @return Channel
      * @throws Exception
      */
-    public function getChannel(string $name): Channel
+    public function getChannel(): Channel
     {
-        if(isset($this->channels[$name])) {
-            return $this->channels[$name];
-        }
-        throw new Exception("Not found channel $name");
+        return $this->channel;
     }
 
     public function onStart(): void
     {
         $this->on("Start", function () {
-            echo "Swoole WebSocket Server is started at " . $this->host . ":" . $this->port . PHP_EOL;
+            echo "WebSocket Server is started at " . $this->host . ":" . $this->port . PHP_EOL;
         });
     }
 
@@ -56,43 +54,41 @@ class Server extends WebsocketServer implements ServerInterface
     {
         $this->on("Open", function (Server $server, Request $request) {
             $fd = $request->fd;
-            $channel = $request->get['channel'] ?? null;
-            $server->getChannel($channel)->subscribers()->set($request->fd, [
+            $server->getChannel()->subscribers()->set($request->fd, [
                 'fd'      => $fd,
+                'channel' => $request->get['channel'] ?? null,
                 'user_id' => $request->get['user_id'] ?? null,
             ]);
-            echo "Connection <$fd> opened. Total connections: " . $server->getChannel($channel)->subscribers()->count() . PHP_EOL;
+            echo "Connection <$fd> opened. Total connections: " . $server->getChannel()->subscribers()->count() . PHP_EOL;
         });
     }
 
     public function onMessage(): void
     {
         $this->on("Message", function (Server $server, Frame $frame) {
-            print_r($frame);
-            $channel =  null;
-            $user_id = $server->getChannel($channel)->subscribers()->get(strval($frame->fd), "user_id");
+            $data = json_decode($frame->data);
 
+            $user_id = $data->user_id;
             echo "Received message from " . $frame->fd . ($user_id ? (" for user_id : $user_id") : '') . PHP_EOL;
+
+            event(new IncomeMessageEvent($frame->fd, $data->channel, $user_id, $data->payload));
         });
     }
 
     public function onClose(): void
     {
-        $this->on("Close", function (Server $server, Request $request, int $fd) {
+        $this->on("Close", function (Server $server, int $fd) {
+            $server->getChannel()->subscribers()->del($fd);
 
-            $channel = $request->get['channel'] ?? null;
-            $server->getChannel($channel)->subscribers()->del($fd);
-
-            echo "Connection close: $fd, total connections: " . $server->getChannel($channel)->subscribers()->count() . PHP_EOL;
+            echo "Connection close: $fd, total connections: " . $server->getChannel()->subscribers()->count() . PHP_EOL;
         });
     }
 
     public function onDisconnect(): void
     {
         $this->on("Disconnect", function (Server $server, Request $request, int $fd) {
-            $channel = $request->get['channel'] ?? null;
-            $server->getChannel($channel)->subscribers()->del($fd);
-            echo "Disconnect: $fd, total connections: " . $server->getChannel($channel)->subscribers()->count() . PHP_EOL;
+            $server->getChannel()->subscribers()->del($fd);
+            echo "Disconnect: $fd, total connections: " . $server->getChannel()->subscribers()->count() . PHP_EOL;
         });
     }
 
@@ -100,27 +96,25 @@ class Server extends WebsocketServer implements ServerInterface
      * @param string $channel
      * @param string $data
      * @return void
-     * @throws Exception
      */
     public function broadcast(string $channel, string $data): void
     {
-        foreach (self::$server->getChannel($channel)->subscribers() as $key => $value) {
-            $this->push($key, $data);
-
-            echo "Send message from " . $key . ($value['user_id'] ? " for user : " . $value['user_id'] : '') . PHP_EOL;
+        foreach (self::$server->getChannel()->subscribers() as $key => $value) {
+            if ($value['channel'] == $channel) {
+                $this->push($key, $data);
+                echo "Send message from " . $key . ($value['user_id'] ? " for user : " . $value['user_id'] : '') . PHP_EOL;
+            }
         }
     }
 
     /**
-     * @param string $channel
      * @param array $users
      * @param string $data
      * @return void
-     * @throws Exception
      */
-    public function sendOnly(string $channel, array $users, string $data): void
+    public function sendOnly(array $users, string $data): void
     {
-        foreach (self::$server->getChannel($channel)->subscribers() as $key => $value) {
+        foreach (self::$server->getChannel()->subscribers() as $key => $value) {
             if (in_array($value['user_id'], $users)) {
                 $this->push($key, $data);
 
@@ -130,14 +124,12 @@ class Server extends WebsocketServer implements ServerInterface
     }
 
     /**
-     * @param string $channel
      * @param array $users
      * @param string $data
-     * @throws Exception
      */
-    public function sendExcept(string $channel, array $users, string $data): void
+    public function sendExcept(array $users, string $data): void
     {
-        foreach (self::$server->getChannel($channel)->subscribers() as $key => $value) {
+        foreach (self::$server->getChannel()->subscribers() as $key => $value) {
             if (!in_array($value['user_id'], $users)) {
                 $this->push($key, $data);
 

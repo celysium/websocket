@@ -2,6 +2,7 @@
 
 namespace Celysium\WebSocket;
 
+use Celysium\WebSocket\Commands\GenerateKeysWebSocket;
 use Celysium\WebSocket\Commands\ServeWebSocket;
 use Celysium\WebSocket\Events\BroadcastEvent;
 use Celysium\WebSocket\Events\SendExceptEvent;
@@ -31,5 +32,6 @@ class WebSocketServiceProvider extends ServiceProvider
         );
 
         $this->commands(ServeWebSocket::class);
+        $this->commands(GenerateKeysWebSocket::class);
     }
 }

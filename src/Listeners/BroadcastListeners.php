@@ -6,8 +6,6 @@ use Celysium\WebSocket\Events\BroadcastEvent as BroadcastEvent;
 use Celysium\WebSocket\Events\SendExceptEvent;
 use Celysium\WebSocket\Events\SendOnlyEvent;
 use Celysium\WebSocket\Server;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Queue\InteractsWithQueue;
 
 class BroadcastListeners
 {
@@ -32,7 +30,7 @@ class BroadcastListeners
      */
     public function sendExcept(SendExceptEvent $event): void
     {
-        Server::instance()->sendExcept($event->channel, $event->users, $event->data);
+        Server::instance()->sendExcept($event->users, $event->data);
     }
 
     /**
@@ -40,6 +38,6 @@ class BroadcastListeners
      */
     public function sendOnly(SendOnlyEvent $event): void
     {
-        Server::instance()->sendOnly($event->channel, $event->users, $event->data);
+        Server::instance()->sendOnly($event->users, $event->data);
     }
 }
