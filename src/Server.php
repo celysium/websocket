@@ -86,7 +86,7 @@ class Server extends WebsocketServer implements ServerInterface
 
     public function onDisconnect(): void
     {
-        $this->on("Disconnect", function (Server $server, Request $request, int $fd) {
+        $this->on("Disconnect", function (Server $server, int $fd) {
             $server->getChannel()->subscribers()->del($fd);
             echo "Disconnect: $fd, total connections: " . $server->getChannel()->subscribers()->count() . PHP_EOL;
         });
