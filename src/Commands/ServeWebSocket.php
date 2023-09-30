@@ -13,7 +13,7 @@ class ServeWebSocket extends Command
      *
      * @var string
      */
-    protected $signature = 'serve:websocket {--host=} {--port=} {--channel=default}';
+    protected $signature = 'websocket:serve {--host=} {--port=}';
 
     /**
      * The console command description.
@@ -30,13 +30,23 @@ class ServeWebSocket extends Command
 
         $host = $this->option('host') ?? config('websocket.server.host');
         $port = $this->option('port') ?? config('websocket.server.port');
-        $channelName = $this->option('channel');
 
         $server = Server::instance($host, $port);
 
+        if (! file_exists(storage_path('websocket_key.pem'))) {
+            $this->error('The keys not exists, please run command websocket:keys');
+            return;
+        }
+        else {
+            $server->set([
+                'ssl_cert_file' => storage_path('websocket_cert.pem'),
+                'ssl_key_file'  => storage_path('websocket_key.pem'),
+            ]);
+        }
+        
         $channel = new Channel();
 
-        $server->setChannel($channel, $channelName);
+        $server->setChannel($channel);
 
         $server->onStart();
         $server->onOpen();

@@ -10,14 +10,14 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class SendOnlyEvent
+class IncomeMessageEvent
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     /**
      * Create a new event instance.
      */
-    public function __construct(public array $users, public string $data)
+    public function __construct(public int $fd, public string $channel, public int $user_id, public array $payload)
     {
         //
     }

@@ -10,6 +10,7 @@ class Channel
     {
         $this->subscribers = new Table(1024);
         $this->subscribers->column('fd', Table::TYPE_INT, 4);
+        $this->subscribers->column('channel', Table::TYPE_STRING, 32);
         $this->subscribers->column('user_id', Table::TYPE_INT, 4);
         $this->subscribers->create();
     }
