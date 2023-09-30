@@ -6,17 +6,27 @@ use Celysium\WebSocket\Events\IncomeMessageEvent;
 use Exception;
 use OpenSwoole\Constant;
 use OpenSwoole\Http\Request;
+use OpenSwoole\Table;
 use OpenSwoole\WebSocket\Frame;
 use OpenSwoole\WebSocket\Server as WebsocketServer;
 
 class Server extends WebsocketServer implements ServerInterface
 {
+    private static Table $table;
     private Channel $channel;
 
     private static $server;
 
     private function __construct(string $host, int $port = 0, int $mode = \OpenSwoole\Server::SIMPLE_MODE, int $sockType = Constant::SOCK_TCP)
     {
+
+        self::$table = new Table(1024);
+        $this->subscribers->column('fd', Table::TYPE_INT, 4);
+        $this->subscribers->column('channel', Table::TYPE_STRING, 32);
+        $this->subscribers->column('user_id', Table::TYPE_INT, 4);
+        $this->subscribers->create();
+
+        // create table
         parent::__construct($host, $port, $mode, $sockType);
     }
 
