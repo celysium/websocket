@@ -2,6 +2,7 @@
 
 namespace Celysium\WebSocket;
 
+use Celysium\WebSocket\Events\IncommingMessage;
 use OpenSwoole\Constant;
 use OpenSwoole\Http\Request;
 use OpenSwoole\Table;
@@ -63,7 +64,7 @@ class Server extends WebsocketServer implements ServerInterface
 
                 echo "Connection <$fd> opened. Total connections: " . $server::getFds()->count() . PHP_EOL;
             } else {
-                echo "Disconnect: <$request->fd>, total connections: " . $server::getFds()->count() . PHP_EOL;
+                echo "Disconnect <$request->fd>, total connections: " . $server::getFds()->count() . PHP_EOL;
             }
         });
     }
@@ -73,8 +74,9 @@ class Server extends WebsocketServer implements ServerInterface
         $this->on("Message", function (Server $server, Frame $frame) {
             $data = json_decode($frame->data);
 
-            $user_id = $data->user_id;
-            echo "Received message from " . $frame->fd . ($user_id ? (" for user_id : $user_id") : '') . PHP_EOL;
+            IncommingMessage::dispatch($data->user_id, $data->channel, $data->data);
+
+            echo "Received message from : " . $frame->fd . PHP_EOL;
         });
     }
 
