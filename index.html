@@ -11,25 +11,24 @@
             );
         }
         window.onload = function () {
-            socket = new WebSocket(`wss://127.0.0.1:9501?channel=admin&user_id=${user_id}`);
+            socket = new WebSocket(`ws://127.0.0.1:9501?channel=admin&user_id=${user_id}`);
             socket.onmessage = function (event) {
                 append(event.data)
             }
             socket.onopen = function () {
-                append("Connected to WebSocket!");
+                console.log("Connected to WebSocket!");
             }
             socket.onclose = function () {
-                append("Connection closed");
+                console.log("Connection closed");
             }
             socket.onerror = function () {
-                append("Error happens");
+                console.log("Error happens");
             }
         }
 
-        function sendMessage(event) {
-            console.log(event)
+        function sendMessage() {
             let message = document.getElementById("message").value;
-            let data = JSON.stringify({ channel: "admin", 'user_id': user_id, message: message });
+            let data = JSON.stringify({'type': 'name', 'payload': {'message': message}});
             socket.send(data);
         }
 
@@ -37,13 +36,13 @@
 </head>
 
 <body>
-    <div>
-        <label for="message">Message: </label>
-        <input value="Hello!" type="text" id="message" /><br><br>
-        <input type="button" value="Submit" onclick="sendMessage(event)" /><br>
-        <ul id="websocket_events">
-        </ul>
-    </div>
+<div>
+    <label for="message">Message: </label>
+    <input value="Hello!" type="text" id="message"/><br><br>
+    <input type="button" value="Submit" onclick="sendMessage()"/><br>
+    <ul id="websocket_events">
+    </ul>
+</div>
 </body>
 
 </html>
