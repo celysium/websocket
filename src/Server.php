@@ -72,9 +72,9 @@ class Server extends WebsocketServer implements ServerInterface
     public function onMessage(): void
     {
         $this->on("Message", function (Server $server, Frame $frame) {
-            $data = json_decode($frame->data);
+            $data = json_decode($frame->data, true);
 
-            IncommingMessage::dispatch($data->user_id, $data->channel, $data->data);
+            IncommingMessage::dispatch($data['user_id'], $data['channel'], $data['data']);
 
             echo "Received message from : " . $frame->fd . PHP_EOL;
         });
