@@ -60,7 +60,7 @@ class Server extends WebsocketServer implements ServerInterface
                 ]);
 
                 $server->tick(1000, function () use ($server, $request) {
-                    $this->dispatchPayload($server, $request);
+                    $this->resolveTasks($server, $request);
                 });
 
                 echo "Connection <$fd> opened. Total connections: " . $server->getFds()->count() . PHP_EOL;
@@ -143,7 +143,7 @@ class Server extends WebsocketServer implements ServerInterface
      * @param Request $request
      * @return void
      */
-    private function dispatchPayload(Server $server, Request $request): void
+    private function resolveTasks(Server $server, Request $request): void
     {
         if (!empty(static::$tasks) && $server->isEstablished($request->fd)) {
             foreach (static::$tasks as $key => $task) {
