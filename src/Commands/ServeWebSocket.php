@@ -31,7 +31,7 @@ class ServeWebSocket extends Command
         $host = $this->option('host') ?? config('websocket.server.host');
         $port = $this->option('port') ?? config('websocket.server.port');
 
-        $server = Server::instance($host, $port);
+        $server = new Server($host, $port);
 
         if (! file_exists(storage_path('websocket_key.pem'))) {
             $this->error('The keys not exists, please run command websocket:keys');
@@ -43,10 +43,6 @@ class ServeWebSocket extends Command
                 'ssl_key_file'  => storage_path('websocket_key.pem'),
             ]);
         }
-        
-        $channel = new Channel();
-
-        $server->setChannel($channel);
 
         $server->onStart();
         $server->onOpen();

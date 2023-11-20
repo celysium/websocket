@@ -2,8 +2,6 @@
 
 namespace Celysium\WebSocket;
 
-use Celysium\WebSocket\Events\IncomeMessageEvent;
-use Exception;
 use OpenSwoole\Constant;
 use OpenSwoole\Http\Request;
 use OpenSwoole\Table;
@@ -12,45 +10,35 @@ use OpenSwoole\WebSocket\Server as WebsocketServer;
 
 class Server extends WebsocketServer implements ServerInterface
 {
-    private static Table $table;
-    private Channel $channel;
+    private static Table $fds;
 
-    private static $server;
+    private static array $tasks = [];
 
-    private function __construct(string $host, int $port = 0, int $mode = \OpenSwoole\Server::SIMPLE_MODE, int $sockType = Constant::SOCK_TCP)
+    public function __construct(string $host, int $port = 0, int $mode = \OpenSwoole\Server::SIMPLE_MODE, int $sockType = Constant::SOCK_TCP)
     {
+        $host = $host ?: config('websocket.server.host');
+        $port = $port ?: config('websocket.server.port');
 
-        self::$table = new Table(1024);
-        $this->subscribers->column('fd', Table::TYPE_INT, 4);
-        $this->subscribers->column('channel', Table::TYPE_STRING, 32);
-        $this->subscribers->column('user_id', Table::TYPE_INT, 4);
-        $this->subscribers->create();
+        static::initialFds();
 
-        // create table
         parent::__construct($host, $port, $mode, $sockType);
     }
 
-    public static function instance(string $host = null, int $port = 0, int $mode = \OpenSwoole\Server::SIMPLE_MODE, int $sockType = Constant::SOCK_TCP): Server
+    public static function initialFds(): void
     {
-        if (!self::$server) {
-            self::$server = new self($host ?? config('websocket.server.host'), $port, $mode, $sockType);
-        }
-
-        return self::$server;
-    }
-
-    public function setChannel(Channel $channel)
-    {
-        $this->channel = $channel;
+        static::$fds = new Table(1024);
+        static::$fds->column('fd', Table::TYPE_INT, 4);
+        static::$fds->column('channel', Table::TYPE_STRING, 32);
+        static::$fds->column('user_id', Table::TYPE_INT, 4);
+        static::$fds->create();
     }
 
     /**
-     * @return Channel
-     * @throws Exception
+     * @return Table
      */
-    public function getChannel(): Channel
+    public function getFds(): Table
     {
-        return $this->channel;
+        return static::$fds;
     }
 
     public function onStart(): void
@@ -63,13 +51,23 @@ class Server extends WebsocketServer implements ServerInterface
     public function onOpen(): void
     {
         $this->on("Open", function (Server $server, Request $request) {
-            $fd = $request->fd;
-            $server->getChannel()->subscribers()->set($request->fd, [
-                'fd'      => $fd,
-                'channel' => $request->get['channel'] ?? null,
-                'user_id' => $request->get['user_id'] ?? null,
-            ]);
-            echo "Connection <$fd> opened. Total connections: " . $server->getChannel()->subscribers()->count() . PHP_EOL;
+            if(isset($request->get['channel']) && isset($request->get['user_id'])) {
+                $fd = $request->fd;
+                $server->getFds()->set($fd, [
+                    'fd'      => $fd,
+                    'channel' => $request->get['channel'],
+                    'user_id' => $request->get['user_id'],
+                ]);
+
+                $server->tick(1000, function () use ($server, $request) {
+                    $this->dispatchPayload($server, $request);
+                });
+
+                echo "Connection <$fd> opened. Total connections: " . $server->getFds()->count() . PHP_EOL;
+            }
+            else {
+                echo "Disconnect: <$request->fd>, total connections: " . $server->getFds()->count() . PHP_EOL;
+            }
         });
     }
 
@@ -80,72 +78,110 @@ class Server extends WebsocketServer implements ServerInterface
 
             $user_id = $data->user_id;
             echo "Received message from " . $frame->fd . ($user_id ? (" for user_id : $user_id") : '') . PHP_EOL;
-
-            event(new IncomeMessageEvent($frame->fd, $data->channel, $user_id, $data->payload));
         });
     }
 
     public function onClose(): void
     {
         $this->on("Close", function (Server $server, int $fd) {
-            $server->getChannel()->subscribers()->del($fd);
+            $server->getFds()->del($fd);
 
-            echo "Connection close: $fd, total connections: " . $server->getChannel()->subscribers()->count() . PHP_EOL;
+            echo "Connection close: $fd, total connections: " . $server->getFds()->count() . PHP_EOL;
         });
     }
 
     public function onDisconnect(): void
     {
         $this->on("Disconnect", function (Server $server, int $fd) {
-            $server->getChannel()->subscribers()->del($fd);
-            echo "Disconnect: $fd, total connections: " . $server->getChannel()->subscribers()->count() . PHP_EOL;
+            $server->getFds()->del($fd);
+            echo "Disconnect: $fd, total connections: " . $server->getFds()->count() . PHP_EOL;
         });
     }
 
     /**
+     * @param string $data
      * @param string $channel
-     * @param string $data
      * @return void
      */
-    public function broadcast(string $channel, string $data): void
+    public static function broadcast(string $data, string $channel = '*'): void
     {
-        foreach (self::$server->getChannel()->subscribers() as $key => $value) {
-            if ($value['channel'] == $channel) {
-                $this->push($key, $data);
-                echo "Send message from " . $key . ($value['user_id'] ? " for user : " . $value['user_id'] : '') . PHP_EOL;
-            }
-        }
+        static::$tasks = array_merge(static::$tasks, [
+            'channel' => $channel,
+            'data' => $data
+        ]);
     }
 
     /**
-     * @param array $users
      * @param string $data
+     * @param array $users
      * @return void
      */
-    public function sendOnly(array $users, string $data): void
+    public static function sendOnly(string $data, array $users): void
     {
-        foreach (self::$server->getChannel()->subscribers() as $key => $value) {
-            if (in_array($value['user_id'], $users)) {
-                $this->push($key, $data);
-
-                echo "Send message from " . $key . ($value['user_id'] ? " for user : " . $value['user_id'] : '') . PHP_EOL;
-            }
-        }
+        static::$tasks = array_merge(static::$tasks, [
+            'only' => $users,
+            'data' => $data
+        ]);
     }
 
     /**
-     * @param array $users
      * @param string $data
+     * @param array $users
+     * @return void
      */
-    public function sendExcept(array $users, string $data): void
+    public static function sendExcept(string $data, array $users): void
     {
-        foreach (self::$server->getChannel()->subscribers() as $key => $value) {
-            if (!in_array($value['user_id'], $users)) {
-                $this->push($key, $data);
+        static::$tasks = array_merge(static::$tasks, [
+            'except' => $users,
+            'data' => $data
+        ]);
+    }
 
-                echo "Send message from " . $key . ($value['user_id'] ? " for user : " . $value['user_id'] : '') . PHP_EOL;
+
+    /**
+     * @param Server $server
+     * @param Request $request
+     * @return void
+     */
+    private function dispatchPayload(Server $server, Request $request): void
+    {
+        if (!empty(static::$tasks) && $server->isEstablished($request->fd)) {
+            foreach (static::$tasks as $key => $task) {
+                if(array_key_exists('channel', $task)) {
+                    $this->sendToChannel($server, $request->fd, $task);
+                }
+                elseif(array_key_exists('only', $task)) {
+                    $this->sendToOnly($server, $request->fd, $task);
+                }
+                elseif(array_key_exists('except', $task)) {
+                    $this->sendToExcept($server, $request->fd, $task);
+                }
+                unset(static::$tasks[$key]);
             }
         }
     }
 
+    private function sendToChannel(Server $server, int $fd, array $task)
+    {
+        $client = $server::getFds()->get($fd);
+        if($client['channel'] == $task['channel'] || $task['channel'] == '*') {
+            $server->push($fd, $task['data']);
+        }
+    }
+
+    private function sendToOnly(Server $server, int $fd, array $task)
+    {
+        $client = $server::getFds()->get($fd);
+        if(in_array($client['user_id'], $task['only'])) {
+            $server->push($fd, $task['data']);
+        }
+    }
+
+    private function sendToExcept(Server $server, int $fd, array $task)
+    {
+        $client = $server::getFds()->get($fd);
+        if(! in_array($client['user_id'], $task['except'])) {
+            $server->push($fd, $task['data']);
+        }
+    }
 }

@@ -14,9 +14,9 @@ interface ServerInterface
 
     public function onDisconnect(): void;
 
-    public function broadcast(string $channel, string $data): void;
+    public static function broadcast(string $data, string $channel = '*'): void;
 
-    public function sendOnly(array $users, string $data): void;
+    public static function sendOnly(string $data, array $users): void;
 
-    public function sendExcept(array $users, string $data): void;
+    public static function sendExcept(string $data, array $users): void;
 }
