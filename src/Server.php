@@ -76,8 +76,9 @@ class Server extends WebsocketServer implements ServerInterface
             $client = $server::getFds()->get($fd);
             $data = json_decode($frame->data, true);
 
-            IncommingMessage::dispatch($client['user_id'], $client['channel'], $data);
-
+            if($data) {
+                IncommingMessage::dispatch($client['user_id'], $client['channel'], $data);
+            }
             echo "Received message from : " . $fd . PHP_EOL;
         });
     }
