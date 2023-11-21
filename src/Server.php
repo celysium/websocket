@@ -101,52 +101,52 @@ class Server extends WebsocketServer implements ServerInterface
     }
 
     /**
-     * @param string $data
+     * @param array $data
      * @param string $channel
      * @return void
      * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
      */
-    public static function broadcast(string $data, string $channel = '*'): void
+    public static function broadcast(array $data, string $channel = '*'): void
     {
         $tasks = cache()->get('websocket_tasks', []);
         cache()->put('websocket_tasks', array_merge($tasks, [[
                                                                  'channel' => $channel,
-                                                                 'data'    => $data,
+                                                                 'data'    => json_encode($data),
                                                                  'done'    => 0,
                                                              ]]));
     }
 
     /**
-     * @param string $data
+     * @param array $data
      * @param array $users
      * @return void
      * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
      */
-    public static function sendOnly(string $data, array $users): void
+    public static function sendOnly(array $data, array $users): void
     {
         $tasks = cache()->get('websocket_tasks', []);
         cache()->put('websocket_tasks', array_merge($tasks, [[
                                                                  'only' => $users,
-                                                                 'data' => $data,
+                                                                 'data'    => json_encode($data),
                                                                  'done' => 0,
                                                              ]]));
     }
 
     /**
-     * @param string $data
+     * @param array $data
      * @param array $users
      * @return void
      * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
      */
-    public static function sendExcept(string $data, array $users): void
+    public static function sendExcept(array $data, array $users): void
     {
         $tasks = cache()->get('websocket_tasks', []);
         cache()->put('websocket_tasks', array_merge($tasks, [[
                                                                  'except' => $users,
-                                                                 'data'   => $data,
+                                                                 'data'    => json_encode($data),
                                                                  'done'   => 0,
                                                              ]]));
     }
