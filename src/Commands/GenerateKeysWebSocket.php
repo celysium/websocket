@@ -2,8 +2,6 @@
 
 namespace Celysium\WebSocket\Commands;
 
-use Celysium\WebSocket\Channel;
-use Celysium\WebSocket\Server;
 use Illuminate\Console\Command;
 
 class GenerateKeysWebSocket extends Command
@@ -44,10 +42,10 @@ class GenerateKeysWebSocket extends Command
             fwrite($pipes[0], "IR\n");            // Country Name (2letter code)
             fwrite($pipes[0], "Tehran\n");        // State or Province Name (full name)
             fwrite($pipes[0], "Iran\n");          // Locality Name (e.g., city)
-            fwrite($pipes[0], "Zoot\n");          // Organization Name (e.g., company)
+            fwrite($pipes[0], "celysium\n");          // Organization Name (e.g., company)
             fwrite($pipes[0], "Tech\n");          // Organization Unit Name (e.g., company)
             fwrite($pipes[0], "Assistant\n");     // Common Name (e.g., server FQDN or YOUR name)
-            fwrite($pipes[0], "info@zoot.com\n"); // Email Address
+            fwrite($pipes[0], "info@celysium.com\n"); // Email Address
             fclose($pipes[0]);
 
             // Read output

@@ -11,7 +11,7 @@ use OpenSwoole\WebSocket\Server as WebsocketServer;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
 
-class Server extends WebsocketServer implements ServerInterface
+class WebSocket extends WebsocketServer implements ServerInterface
 {
     private static Table $fds;
 
@@ -50,7 +50,7 @@ class Server extends WebsocketServer implements ServerInterface
 
     public function onOpen(): void
     {
-        $this->on("Open", function (Server $server, Request $request) {
+        $this->on("Open", function (WebSocket $server, Request $request) {
             if (isset($request->get['channel']) && isset($request->get['user_id'])) {
                 $fd = $request->fd;
                 $server::getFds()->set($fd, [
@@ -71,7 +71,7 @@ class Server extends WebsocketServer implements ServerInterface
 
     public function onMessage(): void
     {
-        $this->on("Message", function (Server $server, Frame $frame) {
+        $this->on("Message", function (WebSocket $server, Frame $frame) {
             $fd = $frame->fd;
             $client = $server::getFds()->get($fd);
             $data = json_decode($frame->data, true);
@@ -85,7 +85,7 @@ class Server extends WebsocketServer implements ServerInterface
 
     public function onClose(): void
     {
-        $this->on("Close", function (Server $server, int $fd) {
+        $this->on("Close", function (WebSocket $server, int $fd) {
             $server::getFds()->del($fd);
 
             echo "Connection close: $fd, total connections: " . $server::getFds()->count() . PHP_EOL;
@@ -94,7 +94,7 @@ class Server extends WebsocketServer implements ServerInterface
 
     public function onDisconnect(): void
     {
-        $this->on("Disconnect", function (Server $server, int $fd) {
+        $this->on("Disconnect", function (WebSocket $server, int $fd) {
             $server::getFds()->del($fd);
             echo "Disconnect: $fd, total connections: " . $server::getFds()->count() . PHP_EOL;
         });
@@ -153,13 +153,13 @@ class Server extends WebsocketServer implements ServerInterface
 
 
     /**
-     * @param Server $server
+     * @param WebSocket $server
      * @param Request $request
      * @return void
      * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
      */
-    private function resolveTasks(Server $server, Request $request): void
+    private function resolveTasks(WebSocket $server, Request $request): void
     {
         $tasks = cache()->get('websocket_tasks', []);
         if (!empty($tasks) && $server->isEstablished($request->fd)) {
@@ -180,7 +180,7 @@ class Server extends WebsocketServer implements ServerInterface
         }
     }
 
-    private function sendToChannel(Server $server, int $fd, array $task)
+    private function sendToChannel(WebSocket $server, int $fd, array $task)
     {
         $client = $server::getFds()->get($fd);
         if ($client['channel'] == $task['channel'] || $task['channel'] == '*') {
@@ -188,7 +188,7 @@ class Server extends WebsocketServer implements ServerInterface
         }
     }
 
-    private function sendToOnly(Server $server, int $fd, array $task)
+    private function sendToOnly(WebSocket $server, int $fd, array $task)
     {
         $client = $server::getFds()->get($fd);
         if (in_array($client['user_id'], $task['only'])) {
@@ -196,7 +196,7 @@ class Server extends WebsocketServer implements ServerInterface
         }
     }
 
-    private function sendToExcept(Server $server, int $fd, array $task)
+    private function sendToExcept(WebSocket $server, int $fd, array $task)
     {
         $client = $server::getFds()->get($fd);
         if (!in_array($client['user_id'], $task['except'])) {
