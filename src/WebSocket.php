@@ -51,8 +51,8 @@ class WebSocket extends WebsocketServer implements ServerInterface
     public function onOpen(): void
     {
         $this->on("Open", function (WebSocket $server, Request $request) {
+            $fd = $request->fd;
             if (isset($request->get['channel']) && isset($request->get['user_id'])) {
-                $fd = $request->fd;
                 $server::getFds()->set($fd, [
                     'channel' => $request->get['channel'],
                     'user_id' => (int)$request->get['user_id'],
@@ -64,7 +64,8 @@ class WebSocket extends WebsocketServer implements ServerInterface
 
                 echo "Connection <$fd> opened. Total connections: " . $server::getFds()->count() . PHP_EOL;
             } else {
-                echo "Disconnect <$request->fd>, total connections: " . $server::getFds()->count() . PHP_EOL;
+                $server->disconnect($fd, 1003, 'unauthorized');
+                echo "Disconnect <$fd>, total connections: " . $server::getFds()->count() . PHP_EOL;
             }
         });
     }
@@ -182,24 +183,24 @@ class WebSocket extends WebsocketServer implements ServerInterface
 
     private function sendToChannel(WebSocket $server, int $fd, array $task)
     {
-        $client = $server::getFds()->get($fd);
-        if ($client['channel'] == $task['channel'] || $task['channel'] == '*') {
+        $channel = $server::getFds()->get($fd);
+        if ($channel == $task['channel'] || $task['channel'] == '*') {
             $server->push($fd, $task['data']);
         }
     }
 
     private function sendToOnly(WebSocket $server, int $fd, array $task)
     {
-        $client = $server::getFds()->get($fd);
-        if (in_array($client['user_id'], $task['only'])) {
+        $userId = $server::getFds()->get($fd, 'user_id');
+        if (in_array($userId, $task['only'])) {
             $server->push($fd, $task['data']);
         }
     }
 
     private function sendToExcept(WebSocket $server, int $fd, array $task)
     {
-        $client = $server::getFds()->get($fd);
-        if (!in_array($client['user_id'], $task['except'])) {
+        $userId = $server::getFds()->get($fd, 'user_id');
+        if (!in_array($userId, $task['except'])) {
             $server->push($fd, $task['data']);
         }
     }
