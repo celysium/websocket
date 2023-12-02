@@ -186,7 +186,7 @@ class WebSocket extends WebsocketServer implements ServerInterface
 
     private function sendToChannel(WebSocket $server, int $fd, array $task)
     {
-        $channel = $server::getFds()->get($fd);
+        $channel = $server::getFds()->get($fd, 'channel');
         if ($channel == $task['channel'] || $task['channel'] == '*') {
             $server->push($fd, $task['data']);
         }
